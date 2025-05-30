@@ -99,33 +99,3 @@ class SimulationClock:
         # Remove failed callbacks to prevent repeated errors
         for failed_cb in failed_callbacks:
             self.unsubscribe(failed_cb)
-
-
-
-import time
-
-if __name__ == "__main__":
-    # Instantiate your SimulationClock
-    clock = SimulationClock(start_time=0)
-
-    # Define a simple callback to print the new time
-    def print_time(new_time):
-        print(f"[Callback] Simulation time advanced to: {new_time}")
-
-    # Subscribe the callback
-    clock.subscribe(print_time)
-
-    # Start the clock in AUTO mode (tick every 1 second, advance by 1)
-    clock.start_auto(interval_seconds=1, delta=1)
-    print("Clock started in auto mode...")
-
-    # Print clock status every 2 seconds, five times
-    try:
-        for _ in range(5):
-            status = clock.get_status()
-            time.sleep(2)
-    finally:
-        # Stop the auto-advancing clock before exit
-        clock.stop_auto()
-        print("Clock stopped.")
-        print(f"Final status: {clock.get_status()}")
