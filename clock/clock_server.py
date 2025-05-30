@@ -56,5 +56,3 @@ def stop_auto():
 @app.get("/status")
 def status():
     return clock.get_status()
-
-# To run: uvicorn clock_server:app --reload 
