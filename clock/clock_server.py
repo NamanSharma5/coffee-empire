@@ -31,9 +31,10 @@ def advance(req: AdvanceRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/tick")
-def tick(req: TickRequest):
+def tick(req: TickRequest = None):
     try:
-        clock.tick(req.delta)
+        delta = req.delta if req is not None else 1
+        clock.tick(delta)
         return {"current_time": clock.now()}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
