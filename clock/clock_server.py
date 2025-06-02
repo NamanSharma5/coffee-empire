@@ -57,3 +57,8 @@ def stop_auto():
 @app.get("/status")
 def status():
     return clock.get_status()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
