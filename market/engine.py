@@ -210,7 +210,8 @@ class EngineFacade:
         expected_delivery = now + EXPECTED_DELIVERY
 
         # evict quote from cache if order successfuly created
-        del self._quote_store[req.quote_id]
+        if req.quote_id and req.quote_id in self._quote_store[req.quote_id]:
+            del self._quote_store[req.quote_id]
 
         return self._orders.create_order(
             business_id=req.business_id,
