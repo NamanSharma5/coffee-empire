@@ -1,5 +1,4 @@
 # api.py
-import uuid
 from fastapi import FastAPI, HTTPException
 from models import (
     QuoteRequest,
@@ -7,10 +6,10 @@ from models import (
     BuyRequest,
     OrderResponse,
 )
-from services import PricingService, InventoryService, OrderService
+from services import DefaultPricingService, VolumeDiscountPricingService, InventoryService, OrderService
 from engine import EngineFacade
 import uvicorn
-from constants import _INGREDIENTS, CLOCK_URL
+from constants import _INGREDIENTS, CLOCK_URL, VOLUME_DISCOUNT_TIERS
 from clock_adapter import ClockAdapter
 
 app = FastAPI()
@@ -18,7 +17,8 @@ app = FastAPI()
 # Initialize the clock adapter (adjust URL as needed)
 clock = ClockAdapter(base_url=CLOCK_URL)
 
-pricing_service = PricingService(_INGREDIENTS, clock=clock)
+# pricing_service = DefaultPricingService(_INGREDIENTS, clock=clock)
+pricing_service = VolumeDiscountPricingService(_INGREDIENTS, clock, VOLUME_DISCOUNT_TIERS)
 inventory_service = InventoryService(_INGREDIENTS)
 order_service = OrderService(clock=clock)
 engine = EngineFacade(pricing_service, inventory_service, order_service, clock)

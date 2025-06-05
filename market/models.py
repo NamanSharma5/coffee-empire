@@ -26,7 +26,7 @@ class QuoteResponse(BaseModel):
 
 class BuyRequest(BaseModel):
     quote_id: Optional[str] = None
-    ingredient_id: str
+    ingredient_id: Optional[str] = None
     quantity: float = Field(..., gt=0)
     max_acceptable_price_per_unit: Optional[float] = None
     business_id: Optional[str] = None
@@ -49,6 +49,7 @@ class OrderResponse(BaseModel):
     expected_delivery: int
     status: str
     failure_reason: Optional[str] = None
+    quote_id: Optional[str] = None
 
 
 # IngredientDefinition (not a Pydantic model)
