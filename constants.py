@@ -1,7 +1,7 @@
 from models import IngredientDefinition
 from typing import Dict
 
-CLOCK_URL = "http://127.0.0.1:8000"
+# CLOCK_URL = "https://coffee-empire-clock.vercel.app"
 
 ONE_DAY = 24
 ONE_WEEK = ONE_DAY * 7

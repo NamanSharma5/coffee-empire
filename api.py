@@ -9,8 +9,14 @@ from models import (
 from services import DefaultPricingService, VolumeDiscountPricingService, InventoryService, OrderService
 from engine import EngineFacade
 import uvicorn
-from constants import _INGREDIENTS, CLOCK_URL, VOLUME_DISCOUNT_TIERS
+from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS
 from clock_adapter import ClockAdapter
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+CLOCK_URL = os.environ.get("CLOCK_URL") or "http://127.0.0.1:8000"
+print(CLOCK_URL)
 
 app = FastAPI()
 
