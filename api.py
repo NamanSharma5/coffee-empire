@@ -15,7 +15,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-CLOCK_URL = os.environ.get("CLOCK_URL") or "http://127.0.0.1:8000"
+CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
 print(CLOCK_URL)
 
 app = FastAPI()
