@@ -1,3 +1,13 @@
+# How to run
+
+### Locally
+`uvicorn api:app --host 0.0.0.0 --port 8080 --reload`
+
+### Via Docker
+if contained needs to be built from dockerfile in folder of command: `docker build -t devcon-market-api .`
+
+`docker run -p 8080:8080 devcon-market-api:latest`
+
 # Market Pricing System
 
 ## Overview
@@ -22,6 +32,40 @@ A sophisticated service that implements tiered volume discounts:
 #### Light Roast Beans
 - 5% discount for orders ≥ 10 kg
 - 15% discount for orders ≥ 20 kg
+
+### 3. Demand-Based Pricing Service
+A dynamic pricing service that adjusts prices based on quote demand within a configurable time window. This service combines with volume discounts to provide comprehensive pricing strategies.
+
+#### How It Works
+The demand-based pricing system tracks quote requests for each ingredient within a sliding time window and automatically increases prices when demand exceeds predefined thresholds.
+
+#### Configuration Parameters
+- **Time Window**: 4 hours (future: possibly configurable per ingredient)
+- **Quote Tracking**: All price quote requests are automatically recorded
+- **Price Adjustments**: Applied multiplicatively on top of volume discounts
+
+#### Current Settings
+
+**Dark Roast Beans (DARK-ROAST-BEANS-STD-KG)**
+- Quote threshold: 5 quotes within 4 hours
+- Price hike: 5% increase per threshold reached
+- Example: If 15 quotes are made within 4 hours, price increases by 15% (3 thresholds × 5%)
+
+**Light Roast Beans (LIGHT-ROAST-BEANS-STD-KG)**
+- Quote threshold: 3 quotes within 4 hours
+- Price hike: 8% increase per threshold reached
+- Example: If 9 quotes are made within 4 hours, price increases by 24% (3 thresholds × 8%)
+
+#### Pricing Calculation Flow
+1. **Volume Discount**: First applies tiered volume discounts based on order quantity
+2. **Demand Adjustment**: Then applies demand-based price increases based on recent quote activity
+3. **Final Price**: Combines both strategies for optimal market-responsive pricing
+
+#### Benefits
+- **Market Responsiveness**: Automatically adjusts to increased demand
+- **Revenue Optimization**: Captures additional value during high-demand periods
+- **Composition**: Works seamlessly with existing volume discount strategies
+- **Configurable**: Easy to adjust thresholds and hike percentages per ingredient
 
 ## Pricing Flow
 

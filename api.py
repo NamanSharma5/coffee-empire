@@ -6,10 +6,10 @@ from models import (
     BuyRequest,
     OrderResponse,
 )
-from services import DefaultPricingService, VolumeDiscountPricingService, InventoryService, OrderService
+from services import DemandBasedPricingService, VolumeDiscountPricingService, InventoryService, OrderService
 from engine import EngineFacade
 import uvicorn
-from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS
+from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES
 from clock_adapter import ClockAdapter
 import os
 from dotenv import load_dotenv
@@ -24,10 +24,11 @@ app = FastAPI()
 clock = ClockAdapter(base_url=CLOCK_URL)
 
 # pricing_service = DefaultPricingService(_INGREDIENTS, clock=clock)
-pricing_service = VolumeDiscountPricingService(_INGREDIENTS, clock, VOLUME_DISCOUNT_TIERS)
+volumeDiscountService = VolumeDiscountPricingService(clock,_INGREDIENTS, VOLUME_DISCOUNT_TIERS)
+demandBasedPricingService = DemandBasedPricingService(clock,_INGREDIENTS, volumeDiscountService, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES)
 inventory_service = InventoryService(_INGREDIENTS)
 order_service = OrderService(clock=clock)
-engine = EngineFacade(pricing_service, inventory_service, order_service, clock)
+engine = EngineFacade(demandBasedPricingService, inventory_service, order_service, clock)
 
 
 @app.post("/quote", response_model=QuoteResponse)

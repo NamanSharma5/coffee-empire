@@ -45,3 +45,16 @@ VOLUME_DISCOUNT_TIERS: Dict[str, list] = {
         (20.0, 0.15),   # 15% off for ≥20 kg
     ],
 }
+
+# Demand-based pricing parameters
+DEMAND_WINDOW_HOURS = 4
+DEMAND_PRICE_HIKES = {
+    "DARK-ROAST-BEANS-STD-KG": {
+        "quote_threshold": 5,  # Number of quotes before price hike
+        "price_hike_percent": 0.05,  # 5% price increase
+    },
+    "LIGHT-ROAST-BEANS-STD-KG": {
+        "quote_threshold": 3,  # Number of quotes before price hike
+        "price_hike_percent": 0.08,  # 8% price increase
+    },
+}

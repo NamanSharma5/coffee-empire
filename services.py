@@ -15,9 +15,9 @@ class PricingService(ABC):
         pass
 
 class DefaultPricingService(PricingService):
-    def __init__(self, ingredients: Dict[str, IngredientDefinition], clock):
-        self._ingredients = ingredients
+    def __init__(self, clock, ingredients: Dict[str, IngredientDefinition]):
         self._clock = clock
+        self._ingredients = ingredients
 
     def get_price(
         self, ingredient_id: str, quantity: float
@@ -52,8 +52,8 @@ class VolumeDiscountPricingService(PricingService):
 
     def __init__(
         self,
-        ingredients: Dict[str, IngredientDefinition],
         clock,
+        ingredients: Dict[str, IngredientDefinition],
         discount_tiers: Dict[str, List[Tuple[float, float]]],
     ):
         """
@@ -62,8 +62,8 @@ class VolumeDiscountPricingService(PricingService):
         :param discount_tiers: mapping ingredient_id → sorted list of (min_qty, discount_rate).
                                discount_rate is a decimal: e.g. 0.10 for 10% off.
         """
-        self._ingredients = ingredients
         self._clock = clock
+        self._ingredients = ingredients
         self._tiers = discount_tiers
 
         # Ensure each tier list is sorted by ascending min_qty
@@ -98,6 +98,88 @@ class VolumeDiscountPricingService(PricingService):
             "price_per_unit": discounted_price,
             "price_valid_until": now + ONE_DAY,
         }
+
+
+class DemandBasedPricingService(PricingService):
+    """
+    PricingService that adjusts prices based on quote demand within a time window.
+    Composes with VolumeDiscountPricingService to apply both demand-based and volume-based pricing.
+    """
+
+    def __init__(
+        self,
+        clock,
+        ingredients: Dict[str, IngredientDefinition],
+        volume_discount_service: VolumeDiscountPricingService,
+        demand_window_hours: int,
+        demand_price_hikes: Dict[str, Dict[str, float]],
+    ):
+        """
+        :param ingredients: IngredientDefinition dict
+        :param clock: TimeProvider (ClockAdapter)
+        :param volume_discount_service: Instance of VolumeDiscountPricingService
+        :param demand_window_hours: Time window in hours to track quotes
+        :param demand_price_hikes: Dict mapping ingredient_id to quote threshold and price hike percentage
+        """
+        self._clock = clock
+        self._ingredients = ingredients
+        self._volume_discount_service = volume_discount_service
+        self._demand_window_hours = demand_window_hours
+        self._demand_price_hikes = demand_price_hikes
+        self._quote_history: Dict[str, List[int]] = {}  # ingredient_id -> list of quote timestamps
+
+    def record_quote(self, ingredient_id: str) -> None:
+        """Record a quote for an ingredient at the current time."""
+        now = self._clock.now()
+        if ingredient_id not in self._quote_history:
+            self._quote_history[ingredient_id] = []
+        self._quote_history[ingredient_id].append(now)
+
+    def _clean_old_quotes(self, ingredient_id: str) -> None:
+        """Remove quotes older than the demand window."""
+        if ingredient_id not in self._quote_history:
+            return
+
+        now = self._clock.now()
+        cutoff_time = now - self._demand_window_hours
+        self._quote_history[ingredient_id] = [
+            timestamp for timestamp in self._quote_history[ingredient_id]
+            if timestamp >= cutoff_time
+        ]
+
+    def get_price(
+        self, ingredient_id: str, quantity: float
+    ) -> Optional[Dict[str, any]]:
+
+        # First get the volume-discounted price
+        volume_price = self._volume_discount_service.get_price(ingredient_id, quantity)
+        if not volume_price:
+            return None
+
+        # Clean old quotes and count recent ones
+        self._clean_old_quotes(ingredient_id)
+        # Record this quote request
+        self.record_quote(ingredient_id)
+        recent_quotes = len(self._quote_history.get(ingredient_id, []))
+
+        # Get demand-based pricing parameters
+        demand_params = self._demand_price_hikes.get(ingredient_id, {})
+        quote_threshold = demand_params.get("quote_threshold", float("inf"))
+        price_hike_percent = demand_params.get("price_hike_percent", 0.0)
+
+        # Calculate demand-based price adjustment
+        if recent_quotes >= quote_threshold:
+            hikes = recent_quotes // quote_threshold
+            demand_multiplier = (1 + price_hike_percent) ** hikes
+            adjusted_price = round(volume_price["price_per_unit"] * demand_multiplier, 2)
+        else:
+            adjusted_price = volume_price["price_per_unit"]
+
+        return {
+            "price_per_unit": adjusted_price,
+            "price_valid_until": volume_price["price_valid_until"],
+        }
+
 
 # InventoryService
 class InventoryService:
