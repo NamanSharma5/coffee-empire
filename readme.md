@@ -94,3 +94,45 @@ The demand-based pricing system tracks quote requests for each ingredient within
 - Price quotes are valid for 24 hours from generation
 - System implements the `PricingService` abstract base class for extensibility
 - New pricing strategies can be added by implementing the `get_price()` method
+
+## Database Management
+
+The system includes database functionality to persist quotes and orders. The database uses SQLModel (built on SQLAlchemy) with PostgreSQL hosted on Railway.
+
+### Database Models
+
+#### Quote Table
+Stores each generated quote with metadata:
+- `quote_id`: Primary key
+- `ingredient_id`: Reference to ingredient
+- `name`, `description`, `unit_of_measure`: Ingredient details
+- `price_per_unit`, `total_price`, `currency`: Pricing information
+- `available_stock`, `use_by_date`: Stock information
+- `price_valid_until`, `delivery_time`: Timing information
+- `created_at`: Timestamp when quote was created
+
+#### Order Table
+Persists each order, optionally linked to a quote:
+- `order_id`: Primary key
+- `business_id`: Optional business identifier
+- `quote_id`: Optional reference to original quote
+- `items`: JSON mapping of ingredient_id → OrderItem dict
+- `total_cost`: Total order cost
+- `order_placed_at`: Timestamp when order was placed
+- `expected_delivery`: Expected delivery timestamp
+- `status`: Order status
+- `failure_reason`: Optional failure reason
+
+### Usage Examples
+
+#### Direct PostgreSQL Testing
+```bash
+# Test direct PostgreSQL connection and operations
+python test_postgresql_direct.py
+
+#### Environment Variables
+You can set the API base URL using environment variables:
+```bash
+export API_BASE_URL="http://your-api-server:8080"
+python test_database.py
+```
