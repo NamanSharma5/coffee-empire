@@ -40,7 +40,6 @@ class Order(SQLModel, table=True):
     order_id: str = Field(default=None, primary_key=True)
     business_id: Optional[str] = Field(index=True, nullable=True)
     quote_id: Optional[str] = Field(
-        foreign_key="quotes.quote_id",
         index=True,
         nullable=True
     )
