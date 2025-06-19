@@ -3,11 +3,13 @@ import psycopg2
 import json
 from sqlmodel import SQLModel, create_engine, Session
 from database_models import Quote, Order
+import os
+from dotenv import load_dotenv
 
-# Railway PostgreSQL connection string
-DATABASE_URL = "postgresql://postgres:CCIeWPMHNnpHPvxMjNzTeCidnBOOQMuq@caboose.proxy.rlwy.net:33627/railway"
+load_dotenv()
+DATABASE_URL = os.environ.get("POSTGRES_CONNECTION_URL")
 
-def test_postgresql_connection():
+def test_postgresql_connection(only_connection=False):
     """Test direct PostgreSQL connection using psycopg2"""
 
     print("Testing Direct PostgreSQL Connection")
@@ -26,6 +28,9 @@ def test_postgresql_connection():
         print("✓ Connection successful!")
     except Exception as e:
         print(f"✗ Connection failed: {e}")
+        return
+
+    if only_connection:
         return
 
     # Test 2: Create tables using SQLModel
@@ -182,5 +187,5 @@ def test_database_operations():
         print(f"✗ Database operations failed: {e}")
 
 if __name__ == "__main__":
-    # test_postgresql_connection()
-    test_database_operations()
+    test_postgresql_connection(only_connection=True)
+    # test_database_operations()
