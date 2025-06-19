@@ -4,8 +4,9 @@ from fastapi import HTTPException
 from models import QuoteRequest, QuoteResponse, BuyRequest, OrderItem, OrderResponse
 from models import IngredientDefinition
 from services import PricingService, InventoryService, OrderService
-from constants import _INGREDIENTS, ONE_DAY, EXPECTED_DELIVERY
+from constants import _INGREDIENTS, ONE_DAY, EXPECTED_DELIVERY, QUOTE_CLEANUP_THRESHOLD
 import uuid
+from storage import AbstractStorage
 
 
 class EngineFacade:
@@ -15,15 +16,27 @@ class EngineFacade:
         inventory_service: InventoryService,
         order_service: OrderService,
         clock,
+        storage: AbstractStorage,
     ):
         self._pricing = pricing_service
         self._inventory = inventory_service
         self._orders = order_service
         self._clock = clock
         self._quote_store: Dict[str, Dict] = {}
+        self._storage = storage
 
     def _generate_quote_id(self) -> str:
         return str(uuid.uuid4())
+
+    def _cleanup_quote_store(self) -> None:
+        """Clean up expired quotes from the quote store when threshold is exceeded."""
+        now = self._clock.now()
+        expired_quotes = [
+            quote_id for quote_id, quote_data in self._quote_store.items()
+            if quote_data["expires_at"] <= now
+        ]
+        for quote_id in expired_quotes:
+            del self._quote_store[quote_id]
 
     def get_quote(self, ingredient_id: str, quantity: float) -> QuoteResponse:
 
@@ -65,6 +78,13 @@ class EngineFacade:
             "quote": quote,
             "expires_at": price_valid_until,
         }
+
+        # Check if quote count exceeds threshold and cleanup if needed
+        if len(self._quote_store) > QUOTE_CLEANUP_THRESHOLD:
+            self._cleanup_quote_store()
+
+        # for now do not save quote to persistent storage
+        # self._storage.save_quote(quote)
         return quote
 
     def _failed_order(
@@ -210,7 +230,7 @@ class EngineFacade:
         expected_delivery = now + EXPECTED_DELIVERY
 
         # evict quote from cache if order successfuly created
-        if req.quote_id and req.quote_id in self._quote_store[req.quote_id]:
+        if req.quote_id and req.quote_id in self._quote_store:
             del self._quote_store[req.quote_id]
 
         return self._orders.create_order(
