@@ -10,7 +10,7 @@ from services import DemandBasedPricingService, VolumeDiscountPricingService, In
 from engine import EngineFacade
 import uvicorn
 from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES
-from clock_adapter import ClockAdapter
+from clock_adapter import ClockAdapter, FoundryClockAdapter
 import os
 from dotenv import load_dotenv
 from storage import InMemoryStorage, SqlStorage
@@ -21,11 +21,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-# Initialize the clock adapter (adjust URL as needed)
-CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
-logger.info(CLOCK_URL)
-clock = ClockAdapter(base_url=CLOCK_URL)
 
+# Initialize the clock adapter (adjust URL as needed)
+if os.environ.get("CLOCK") is not None and os.environ.get("CLOCK") .lower() == "foundry":
+    clock = FoundryClockAdapter()
+    logger.info("Using Foundry as the simulation clock")
+else:
+    CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
+    clock = ClockAdapter(base_url=CLOCK_URL)
+    logger.info("Using Vercel as simulation clock")
+        
 # initialise state
 USE_DATABASE: bool = os.getenv("USE_DATABASE","false").lower() == "true"
 
