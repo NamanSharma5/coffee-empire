@@ -13,22 +13,40 @@ from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS, DEMAND_WINDOW_HOURS, 
 from clock_adapter import ClockAdapter
 import os
 from dotenv import load_dotenv
+from storage import InMemoryStorage, SqlStorage
+from database_service import DatabaseService
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
+# Initialize the clock adapter (adjust URL as needed)
 CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
-print(CLOCK_URL)
+logger.info(CLOCK_URL)
+clock = ClockAdapter(base_url=CLOCK_URL)
+
+# initialise state
+USE_DATABASE: bool = os.getenv("USE_DATABASE","false").lower() == "true"
+
+if USE_DATABASE:
+    logger.info("Using postgres database for orders")
+    db_url = os.getenv("POSTGRES_CONNECTION_URL")
+    db_service = DatabaseService(db_url)
+    session = db_service.get_session()
+    storage = SqlStorage(session)
+else:
+    logger.info("All data structures are in-memory")
+    storage = InMemoryStorage()
 
 app = FastAPI()
-
-# Initialize the clock adapter (adjust URL as needed)
-clock = ClockAdapter(base_url=CLOCK_URL)
 
 # pricing_service = DefaultPricingService(_INGREDIENTS, clock=clock)
 volumeDiscountService = VolumeDiscountPricingService(clock,_INGREDIENTS, VOLUME_DISCOUNT_TIERS)
 demandBasedPricingService = DemandBasedPricingService(clock,_INGREDIENTS, volumeDiscountService, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES)
 inventory_service = InventoryService(_INGREDIENTS)
-order_service = OrderService(clock=clock)
-engine = EngineFacade(demandBasedPricingService, inventory_service, order_service, clock)
+order_service = OrderService(clock=clock, storage=storage)
+engine = EngineFacade(demandBasedPricingService, inventory_service, order_service, clock, storage)
 
 
 @app.post("/quote", response_model=QuoteResponse)
@@ -55,6 +73,15 @@ def check_stock(ingredient_id: str):
     if stock is None:
         raise HTTPException(status_code=404, detail="Ingredient not found")
     return {"ingredient_id": ingredient_id, "stock_available": stock}
+
+
+@app.post("/reset-database", include_in_schema=False)
+def reset_database():
+    if not USE_DATABASE:
+        raise HTTPException(status_code=400, detail="Database is not enabled")
+    db_url = os.getenv("POSTGRES_CONNECTION_URL")
+    db_service = DatabaseService(db_url)
+    return db_service.reset_tables()
 
 
 if __name__ == "__main__":

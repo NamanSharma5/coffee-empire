@@ -6,6 +6,7 @@ from models import IngredientDefinition
 from services import PricingService, InventoryService, OrderService
 from constants import _INGREDIENTS, ONE_DAY, EXPECTED_DELIVERY
 import uuid
+from storage import AbstractStorage
 
 
 class EngineFacade:
@@ -15,12 +16,14 @@ class EngineFacade:
         inventory_service: InventoryService,
         order_service: OrderService,
         clock,
+        storage: AbstractStorage,
     ):
         self._pricing = pricing_service
         self._inventory = inventory_service
         self._orders = order_service
         self._clock = clock
         self._quote_store: Dict[str, Dict] = {}
+        self._storage = storage
 
     def _generate_quote_id(self) -> str:
         return str(uuid.uuid4())
@@ -65,6 +68,8 @@ class EngineFacade:
             "quote": quote,
             "expires_at": price_valid_until,
         }
+        # for now do not save quote to persistent storage
+        # self._storage.save_quote(quote)
         return quote
 
     def _failed_order(

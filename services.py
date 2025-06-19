@@ -4,6 +4,7 @@ from models import IngredientDefinition
 from models import OrderResponse, OrderItem
 from constants import ONE_DAY
 from abc import ABC, abstractmethod
+from storage import AbstractStorage
 
 
 # Abstract base class for PricingService
@@ -206,9 +207,10 @@ class InventoryService:
 
 # OrderService
 class OrderService:
-    def __init__(self, clock):
+    def __init__(self, clock, storage: AbstractStorage):
         self._orders: Dict[str, OrderResponse] = {}
         self._clock = clock
+        self._storage = storage
 
     def create_order(
         self,
@@ -235,8 +237,9 @@ class OrderService:
             failure_reason=failure_reason,
             quote_id=quote_id,
         )
-        self._orders[order_id] = order
+        if status == "CONFIRMED":
+            self._storage.save_order(order)
         return order
 
     def get_order(self, order_id: str) -> Optional[OrderResponse]:
-        return self._orders.get(order_id)
+        return self._storage.get_order(order_id)
