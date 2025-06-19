@@ -136,6 +136,25 @@ class DemandBasedPricingService(PricingService):
             self._quote_history[ingredient_id] = []
         self._quote_history[ingredient_id].append(now)
 
+    # TURNED OFF FOR NOW: Check if total quote count exceeds threshold and cleanup if needed
+    #     total_quotes = sum(len(quotes) for quotes in self._quote_history.values())
+    #     if total_quotes > QUOTE_CLEANUP_THRESHOLD:
+    #         self._cleanup_all_quotes()
+
+    # def _cleanup_all_quotes(self) -> None:
+    #     """Clean up all quotes across all ingredients when threshold is exceeded."""
+    #     now = self._clock.now()
+    #     cutoff_time = now - self._demand_window_hours
+
+    #     for ingredient_id in list(self._quote_history.keys()):
+    #         self._quote_history[ingredient_id] = [
+    #             timestamp for timestamp in self._quote_history[ingredient_id]
+    #             if timestamp >= cutoff_time
+    #         ]
+    #         # Remove empty lists to keep the dict clean
+    #         if not self._quote_history[ingredient_id]:
+    #             del self._quote_history[ingredient_id]
+
     def _clean_old_quotes(self, ingredient_id: str) -> None:
         """Remove quotes older than the demand window."""
         if ingredient_id not in self._quote_history:
