@@ -10,18 +10,22 @@ from services import DemandBasedPricingService, VolumeDiscountPricingService, In
 from engine import EngineFacade
 import uvicorn
 from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES
-from clock_adapter import ClockAdapter
+from clock_adapter import ClockAdapter, FoundryClockAdapter
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
-print(CLOCK_URL)
 
 app = FastAPI()
 
 # Initialize the clock adapter (adjust URL as needed)
-clock = ClockAdapter(base_url=CLOCK_URL)
+if os.environ.get("CLOCK") is not None and os.environ.get("CLOCK") .lower() == "foundry":
+    clock = FoundryClockAdapter()
+    print("Using Foundry as the simulation clock")
+else:
+    CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
+    clock = ClockAdapter(base_url=CLOCK_URL)
+    print("Using Vercel as simulation clock")
 
 # pricing_service = DefaultPricingService(_INGREDIENTS, clock=clock)
 volumeDiscountService = VolumeDiscountPricingService(clock,_INGREDIENTS, VOLUME_DISCOUNT_TIERS)
