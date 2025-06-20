@@ -30,7 +30,7 @@ else:
     CLOCK_URL = os.environ.get("CLOCK_URL") or "https://coffee-empire-clock.vercel.app"
     clock = ClockAdapter(base_url=CLOCK_URL)
     logger.info("Using Vercel as simulation clock")
-        
+
 # initialise state
 USE_DATABASE: bool = os.getenv("USE_DATABASE","false").lower() == "true"
 
@@ -80,7 +80,7 @@ def check_stock(ingredient_id: str):
     return {"ingredient_id": ingredient_id, "stock_available": stock}
 
 
-@app.post("/reset-database", include_in_schema=False)
+@app.post("/reset-database")
 def reset_database():
     if not USE_DATABASE:
         raise HTTPException(status_code=400, detail="Database is not enabled")
