@@ -16,5 +16,5 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Command to run the application (using shell form to allow port substution)
-CMD uvicorn api:app --host 0.0.0.0 --port ${PORT:-8080}
+# Command to run the application using Python module execution
+CMD ["python", "-m", "src.api"]

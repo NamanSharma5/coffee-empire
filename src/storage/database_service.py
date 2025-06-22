@@ -1,6 +1,6 @@
 # database_service.py
 from sqlmodel import SQLModel, create_engine, Session
-from database_models import Quote, Order
+from src.models.database_models import Quote, Order
 import os
 from typing import Dict, Any
 

@@ -1,4 +1,4 @@
-from models import IngredientDefinition
+from src.models.api_models import IngredientDefinition
 from typing import Dict
 
 # CLOCK_URL = "https://coffee-empire-clock.vercel.app"

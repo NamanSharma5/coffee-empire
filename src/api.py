@@ -1,26 +1,26 @@
 # api.py
+import uvicorn
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from models import (
+from .models.api_models import (
     QuoteRequest,
     QuoteResponse,
     BuyRequest,
     OrderResponse,
 )
-from services import DemandBasedPricingService, VolumeDiscountPricingService, InventoryService, OrderService
-from engine import EngineFacade
-import uvicorn
-from constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES
-from clock_adapter import ClockAdapter, FoundryClockAdapter
-import os
-from dotenv import load_dotenv
-from storage import InMemoryStorage, SqlStorage
-from database_service import DatabaseService
+from .core.services import DemandBasedPricingService, VolumeDiscountPricingService, InventoryService, OrderService
+from .core.engine import EngineFacade
+from .utils.constants import _INGREDIENTS, VOLUME_DISCOUNT_TIERS, DEMAND_WINDOW_HOURS, DEMAND_PRICE_HIKES
+from .utils.clock_adapter import ClockAdapter, FoundryClockAdapter
+from .storage.storage import InMemoryStorage, SqlStorage
+from .storage.database_service import DatabaseService
+
+load_dotenv()
 
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-load_dotenv()
 
 # Initialize the clock adapter (adjust URL as needed)
 if os.environ.get("CLOCK") is not None and os.environ.get("CLOCK") .lower() == "foundry":

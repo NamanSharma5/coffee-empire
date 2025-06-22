@@ -4,7 +4,8 @@
 `uvicorn api:app --host 0.0.0.0 --port 8080 --reload`
 
 ### Via Docker
-if contained needs to be built from dockerfile in folder of command: `docker build -t devcon-market-api .`
+if contained needs to be built from dockerfile in folder of command:
+ `docker build -t devcon-market-api .`
 
 `docker run -p 8080:8080 devcon-market-api:latest`
 
