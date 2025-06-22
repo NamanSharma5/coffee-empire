@@ -1,9 +1,9 @@
 # storage.py
 from abc import ABC, abstractmethod
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from src.models.api_models import OrderResponse, QuoteResponse
 from src.models.database_models import Order as OrderORM, Quote as QuoteORM
-from sqlmodel import Session
+from sqlmodel import Session, select
 import json, uuid
 
 class AbstractStorage(ABC):
@@ -12,6 +12,9 @@ class AbstractStorage(ABC):
         pass
     @abstractmethod
     def get_order(self, order_id: str) -> Optional[OrderResponse]:
+        pass
+    @abstractmethod
+    def get_orders_by_business_id(self, business_id: str) -> List[OrderResponse]:
         pass
     @abstractmethod
     def save_quote(self, quote: QuoteResponse) -> None:
@@ -28,6 +31,9 @@ class InMemoryStorage(AbstractStorage):
 
     def get_order(self, order_id: str) -> Optional[OrderResponse]:
         return self._orders.get(order_id)
+
+    def get_orders_by_business_id(self, business_id: str) -> List[OrderResponse]:
+        return [order for order in self._orders.values() if order.business_id == business_id]
 
     def save_quote(self, quote: QuoteResponse) -> None:
         self._quote_store[quote.quote_id] = quote
@@ -55,6 +61,11 @@ class SqlStorage(AbstractStorage):
     def get_order(self, order_id: str) -> Optional[OrderResponse]:
         orm = self._session.get(OrderORM, order_id)
         return OrderResponse(**orm.dict()) if orm else None
+
+    def get_orders_by_business_id(self, business_id: str) -> List[OrderResponse]:
+        statement = select(OrderORM).where(OrderORM.business_id == business_id)
+        orms = self._session.exec(statement).all()
+        return [OrderResponse(**orm.dict()) for orm in orms]
 
     def save_quote(self, quote: QuoteResponse) -> None:
         orm = QuoteORM(

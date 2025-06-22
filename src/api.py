@@ -72,6 +72,12 @@ def get_order(order_id: str):
     return order
 
 
+@app.get("/orders/business/{business_id}", response_model=list[OrderResponse])
+def get_orders_by_business(business_id: str):
+    orders = engine.get_orders_by_business_id(business_id)
+    return orders
+
+
 @app.get("/stock/{ingredient_id}")
 def check_stock(ingredient_id: str):
     stock = inventory_service.get_stock(ingredient_id)

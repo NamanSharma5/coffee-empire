@@ -1,5 +1,5 @@
 # engine.py
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from fastapi import HTTPException
 from src.models.api_models import QuoteRequest, QuoteResponse, BuyRequest, OrderItem, OrderResponse
 from src.models.api_models import IngredientDefinition
@@ -243,3 +243,6 @@ class EngineFacade:
 
     def get_order(self, order_id: str) -> Optional[OrderResponse]:
         return self._orders.get_order(order_id)
+
+    def get_orders_by_business_id(self, business_id: str) -> List[OrderResponse]:
+        return self._storage.get_orders_by_business_id(business_id)
