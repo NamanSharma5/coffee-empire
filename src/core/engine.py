@@ -1,9 +1,9 @@
 # engine.py
 from typing import Dict, Optional, List
 from fastapi import HTTPException
-from src.models.api_models import QuoteRequest, QuoteResponse, BuyRequest, OrderItem, OrderResponse
+from src.models.api_models import QuoteRequest, QuoteResponse, BuyRequest, OrderItem, OrderResponse, NegotiateRequest, NegotiateResponse
 from src.models.api_models import IngredientDefinition
-from src.core.services import PricingService, InventoryService, OrderService
+from src.core.services import PricingService, InventoryService, OrderService, NegotiationService
 from src.utils.constants import _INGREDIENTS, ONE_DAY, EXPECTED_DELIVERY, QUOTE_CLEANUP_THRESHOLD
 import uuid
 from src.storage.storage import AbstractStorage
@@ -23,20 +23,45 @@ class EngineFacade:
         self._orders = order_service
         self._clock = clock
         self._quote_store: Dict[str, Dict] = {}
+        self._negotiated_quote_store: Dict[str, Dict] = {}  # Separate store for negotiated quotes
         self._storage = storage
+        self._negotiation_service = NegotiationService(clock, _INGREDIENTS)
 
     def _generate_quote_id(self) -> str:
         return str(uuid.uuid4())
 
     def _cleanup_quote_store(self) -> None:
-        """Clean up expired quotes from the quote store when threshold is exceeded."""
+        """Clean up expired quotes from both quote stores when threshold is exceeded."""
         now = self._clock.now()
+
+        # Clean up regular quote store
         expired_quotes = [
             quote_id for quote_id, quote_data in self._quote_store.items()
             if quote_data["expires_at"] <= now
         ]
         for quote_id in expired_quotes:
             del self._quote_store[quote_id]
+
+        # Clean up negotiated quote store
+        expired_negotiated_quotes = [
+            quote_id for quote_id, quote_data in self._negotiated_quote_store.items()
+            if quote_data["expires_at"] <= now
+        ]
+        for quote_id in expired_negotiated_quotes:
+            del self._negotiated_quote_store[quote_id]
+
+    def _get_unnegotiated_quotes(self, quote_id: str) -> Optional[Dict]:
+        # Check regular quotes
+        if quote_id in self._quote_store:
+            return self._quote_store[quote_id]
+
+        return None
+
+    def _get_negotiated_quotes(self, quote_id:str) -> Optional[Dict]:
+        if quote_id in self._negotiated_quote_store:
+            return self._negotiated_quote_store[quote_id]
+
+        return None
 
     def get_quote(self, ingredient_id: str, quantity: float) -> QuoteResponse:
 
@@ -145,7 +170,10 @@ class EngineFacade:
         # Get price per unit
         price_per_unit: float
         if req.quote_id:
-            cached = self._quote_store.get(req.quote_id)
+            cached = self._get_unnegotiated_quotes(req.quote_id)
+            if cached is None:
+                cached = self._get_negotiated_quotes(req.quote_id)
+
             if (
                 cached
                 and cached["quote"].ingredient_id == req.ingredient_id
@@ -230,8 +258,12 @@ class EngineFacade:
         expected_delivery = now + EXPECTED_DELIVERY
 
         # evict quote from cache if order successfuly created
-        if req.quote_id and req.quote_id in self._quote_store:
-            del self._quote_store[req.quote_id]
+        if req.quote_id:
+            # Remove from both stores
+            if req.quote_id in self._quote_store:
+                del self._quote_store[req.quote_id]
+            if req.quote_id in self._negotiated_quote_store:
+                del self._negotiated_quote_store[req.quote_id]
 
         return self._orders.create_order(
             business_id=req.business_id,
@@ -246,3 +278,51 @@ class EngineFacade:
 
     def get_orders_by_business_id(self, business_id: str) -> List[OrderResponse]:
         return self._storage.get_orders_by_business_id(business_id)
+
+    def negotiate(self, request: NegotiateRequest) -> NegotiateResponse:
+        """
+        Negotiate a price for an existing quote.
+        """
+        # Check if quote exists and is valid
+        cached = self._get_unnegotiated_quotes(request.quote_id)
+        if not cached:
+            raise HTTPException(
+                status_code=404,
+                detail="Quote not found. You need a valid unnegotiated quote before you can negotiate."
+            )
+
+        original_quote:QuoteResponse = cached["quote"]
+        now = self._clock.now()
+
+        # Check if quote has expired
+        if cached["expires_at"] <= now:
+            raise HTTPException(
+                status_code=400,
+                detail="Quote has expired. Please request a new quote before negotiating."
+            )
+
+        if original_quote.price_per_unit <= request.proposed_price_per_unit:
+            raise HTTPException(
+                status_code=400,
+                detail="You are trying to ask for a higher price per unit ?!"
+            )
+
+        # Perform negotiation
+        negotiation_result = self._negotiation_service.negotiate_price(request, original_quote)
+
+        # If negotiation was successful, move the quote to the negotiated store
+        if negotiation_result.accepted and negotiation_result.new_quote:
+            # Remove from regular quote store
+            if request.quote_id in self._quote_store:
+                del self._quote_store[request.quote_id]
+
+            # Add to negotiated quote store
+            self._negotiated_quote_store[request.quote_id] = {
+                "quote": negotiation_result.new_quote,
+                "expires_at": original_quote.price_valid_until,
+                "negotiated_at": now,
+                "original_price": original_quote.price_per_unit,
+                "negotiated_price": negotiation_result.final_price_per_unit,
+            }
+
+        return negotiation_result

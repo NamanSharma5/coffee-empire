@@ -32,6 +32,21 @@ class BuyRequest(BaseModel):
     business_id: Optional[str] = None
 
 
+class NegotiateRequest(BaseModel):
+    quote_id: str
+    proposed_price_per_unit: float = Field(..., gt=0)
+    rationale: str = Field(..., min_length=1, max_length=1000)
+
+
+class NegotiateResponse(BaseModel):
+    original_quote: QuoteResponse
+    proposed_price_per_unit: float
+    final_price_per_unit: float
+    accepted: bool
+    llm_rationale: str
+    new_quote: Optional[QuoteResponse] = None
+
+
 class OrderItem(BaseModel):
     ingredient_id: str
     quantity: float
