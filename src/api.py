@@ -8,6 +8,8 @@ from .models.api_models import (
     QuoteResponse,
     BuyRequest,
     OrderResponse,
+    NegotiateRequest,
+    NegotiateResponse,
 )
 from .core.services import DemandBasedPricingService, VolumeDiscountPricingService, InventoryService, OrderService
 from .core.engine import EngineFacade
@@ -93,6 +95,11 @@ def reset_database():
     db_url = os.getenv("POSTGRES_CONNECTION_URL")
     db_service = DatabaseService(db_url)
     return db_service.reset_tables()
+
+
+@app.post("/negotiate", response_model=NegotiateResponse)
+def negotiate_endpoint(req: NegotiateRequest):
+    return engine.negotiate(req)
 
 
 if __name__ == "__main__":

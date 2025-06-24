@@ -6,3 +6,4 @@ requests==2.31.0
 sqlalchemy
 sqlmodel
 psycopg2-binary
+openai
