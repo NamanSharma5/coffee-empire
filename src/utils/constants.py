@@ -9,7 +9,7 @@ ONE_MONTH = ONE_WEEK * 4
 
 EXPECTED_DELIVERY = ONE_DAY
 UNLIMITED_STOCK = 100000
-QUOTE_CLEANUP_THRESHOLD = 1000
+QUOTE_CLEANUP_THRESHOLD = 10000
 
 # In‐memory "database" of ingredients
 _INGREDIENTS: Dict[str, IngredientDefinition] = {

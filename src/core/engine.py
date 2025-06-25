@@ -175,16 +175,32 @@ class EngineFacade:
                 cached = self._get_negotiated_quotes(req.quote_id)
 
             if cached is None:
-                return self._failed_order(
-                    business_id=req.business_id,
-                    ingredient_id=req.ingredient_id,
-                    quantity=req.quantity,
-                    use_by_date=ing_def.use_by_date,
-                    expected_delivery=now,
-                    status="FAILED_INVALID_QUOTE:NOT_FOUND",
-                    failure_reason="Quote not found.",
-                    quote_id=req.quote_id,
-                )
+                # return self._failed_order(
+                #     business_id=req.business_id,
+                #     ingredient_id=req.ingredient_id,
+                #     quantity=req.quantity,
+                #     use_by_date=ing_def.use_by_date,
+                #     expected_delivery=now,
+                #     status="FAILED_INVALID_QUOTE:NOT_FOUND",
+                #     failure_reason="Quote not found.",
+                #     quote_id=req.quote_id,
+                # )
+
+                pinfo = self._pricing.get_price(req.ingredient_id, req.quantity)
+                #TODO: put a premium here for not getting a quote
+                if not pinfo:
+                    return self._failed_order(
+                        business_id=req.business_id,
+                        ingredient_id=req.ingredient_id,
+                        quantity=req.quantity,
+                        use_by_date=ing_def.use_by_date,
+                        expected_delivery=now,
+                        status="FAILED_SYSTEM_ERROR",
+                        failure_reason="Could not compute price.",
+                        quote_id=req.quote_id,
+                    )
+                price_per_unit = pinfo["price_per_unit"]
+
 
             if cached["quote"].ingredient_id != req.ingredient_id:
                 return self._failed_order(
