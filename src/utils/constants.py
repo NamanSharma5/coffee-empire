@@ -83,7 +83,7 @@ _INGREDIENTS: Dict[str, IngredientDefinition] = {
         use_by_date=ONE_DAY * 2,
         stock=UNLIMITED_STOCK,
     ),
-    "pre-packaged_sandwiches": IngredientDefinition(
+    "pre_packaged_sandwiches": IngredientDefinition(
         ingredient_id="pre_packaged_sandwiches",
         name="Pre-packaged Gourmet Sandwiches",
         description="Fresh pre-packaged sandwiches with premium ingredients, various fillings available.",
