@@ -174,25 +174,58 @@ class EngineFacade:
             if cached is None:
                 cached = self._get_negotiated_quotes(req.quote_id)
 
-            if (
-                cached
-                and cached["quote"].ingredient_id == req.ingredient_id
-                # you have to spend at least the total price of your quote (no low quantity at cheaper prices)
-                and cached["quote"].price_per_unit * req.quantity >= cached["quote"].total_price
-                and cached["expires_at"] > now
-            ):
-                price_per_unit = cached["quote"].price_per_unit
-            else:
+            if cached is None:
                 return self._failed_order(
                     business_id=req.business_id,
                     ingredient_id=req.ingredient_id,
                     quantity=req.quantity,
                     use_by_date=ing_def.use_by_date,
                     expected_delivery=now,
-                    status="FAILED_INVALID_QUOTE",
-                    failure_reason="Quote not found, expired or under expected spend.",
+                    status="FAILED_INVALID_QUOTE:NOT_FOUND",
+                    failure_reason="Quote not found.",
                     quote_id=req.quote_id,
                 )
+
+            if cached["quote"].ingredient_id != req.ingredient_id:
+                return self._failed_order(
+                    business_id=req.business_id,
+                    ingredient_id=req.ingredient_id,
+                    quantity=req.quantity,
+                    use_by_date=ing_def.use_by_date,
+                    expected_delivery=now,
+                    status="FAILED_INVALID_QUOTE:INGREDIENT_MISMATCH",
+                    failure_reason=f"Ingredient in quote ({cached['quote'].ingredient_id}) does not match requested ingredient ({req.ingredient_id}).",
+                    quote_id=req.quote_id,
+                )
+
+            if cached["quote"].price_per_unit * req.quantity < cached["quote"].total_price:
+                return self._failed_order(
+                    business_id=req.business_id,
+                    ingredient_id=req.ingredient_id,
+                    quantity=req.quantity,
+                    use_by_date=ing_def.use_by_date,
+                    expected_delivery=now,
+                    status="FAILED_INVALID_QUOTE:UNDER_MINIMUM_SPEND",
+                    failure_reason=(
+                        f"Total spend ({cached['quote'].price_per_unit * req.quantity:.2f}) is less than the quoted minimum ({cached['quote'].total_price:.2f})."
+                    ),
+                    quote_id=req.quote_id,
+                )
+
+            if cached["expires_at"] <= now:
+                return self._failed_order(
+                    business_id=req.business_id,
+                    ingredient_id=req.ingredient_id,
+                    quantity=req.quantity,
+                    use_by_date=ing_def.use_by_date,
+                    expected_delivery=now,
+                    status="FAILED_INVALID_QUOTE:QUOTE_EXPIRED",
+                    failure_reason="Quote has expired.",
+                    quote_id=req.quote_id,
+                )
+
+            # no failure cases so get quoted unit price
+            price_per_unit = cached["quote"].price_per_unit
         else:
             pinfo = self._pricing.get_price(req.ingredient_id, req.quantity)
             #TODO: put a premium here for not getting a quote
