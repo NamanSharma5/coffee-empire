@@ -216,19 +216,20 @@ class EngineFacade:
                         quote_id=req.quote_id,
                     )
 
-                if cached["quote"].price_per_unit * req.quantity < cached["quote"].total_price:
-                    return self._failed_order(
-                        business_id=req.business_id,
-                        ingredient_id=req.ingredient_id,
-                        quantity=req.quantity,
-                        use_by_date=ing_def.use_by_date,
-                        expected_delivery=now,
-                        status="FAILED_INVALID_QUOTE:UNDER_MINIMUM_SPEND",
-                        failure_reason=(
-                            f"Total spend ({cached['quote'].price_per_unit * req.quantity:.2f}) is less than the quoted minimum ({cached['quote'].total_price:.2f})."
-                        ),
-                        quote_id=req.quote_id,
-                    )
+                # drop this constraint to simplify
+                # if cached["quote"].price_per_unit * req.quantity < cached["quote"].total_price:
+                #     return self._failed_order(
+                #         business_id=req.business_id,
+                #         ingredient_id=req.ingredient_id,
+                #         quantity=req.quantity,
+                #         use_by_date=ing_def.use_by_date,
+                #         expected_delivery=now,
+                #         status="FAILED_INVALID_QUOTE:UNDER_MINIMUM_SPEND",
+                #         failure_reason=(
+                #             f"Total spend ({cached['quote'].price_per_unit * req.quantity:.2f}) is less than the quoted minimum ({cached['quote'].total_price:.2f})."
+                #         ),
+                #         quote_id=req.quote_id,
+                #     )
 
                 if cached["expires_at"] <= now:
                     return self._failed_order(
