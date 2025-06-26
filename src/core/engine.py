@@ -261,18 +261,19 @@ class EngineFacade:
                 )
             price_per_unit = pinfo["price_per_unit"]
 
-        if req.max_acceptable_price_per_unit is not None:
-            if price_per_unit > req.max_acceptable_price_per_unit:
-                return self._failed_order(
-                    business_id=req.business_id,
-                    ingredient_id=req.ingredient_id,
-                    quantity=req.quantity,
-                    use_by_date=ing_def.use_by_date,
-                    expected_delivery=now,
-                    status="FAILED_PRICE_TOO_HIGH",
-                    failure_reason=f"Price {price_per_unit:.2f} > max acceptable {req.max_acceptable_price_per_unit:.2f}",
-                    quote_id=req.quote_id,
-                )
+        # if req.max_acceptable_price_per_unit is not None:
+        #     if price_per_unit > req.max_acceptable_price_per_unit:
+        #         return self._failed_order(
+        #             business_id=req.business_id,
+        #             ingredient_id=req.ingredient_id,
+        #             quantity=req.quantity,
+        #             use_by_date=ing_def.use_by_date,
+        #             expected_delivery=now,
+        #             status="FAILED_PRICE_TOO_HIGH",
+        #             failure_reason=f"Price {price_per_unit:.2f} > max acceptable {req.max_acceptable_price_per_unit:.2f}",
+        #             quote_id=req.quote_id,
+        #         )
+
         available = self._inventory.get_stock(req.ingredient_id)
         if available is None or available < req.quantity:
             return self._failed_order(
