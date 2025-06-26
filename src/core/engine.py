@@ -304,7 +304,7 @@ class EngineFacade:
             quantity=req.quantity,
             price_per_unit_paid=price_per_unit,
             total_price=total_price,
-            use_by_date=ing_def.use_by_date,
+            use_by_date=ing_def.use_by_date + now,
         )
 
         expected_delivery = now + EXPECTED_DELIVERY
